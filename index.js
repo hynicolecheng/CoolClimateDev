@@ -124,6 +124,7 @@ async function activityFilters(geofips, spreadsheets) {
         const temp = filtered.map((element)=>({[num]:element[num]}));
         results1.push(...temp);
       }
+      //add ldv for the models, but hdv data also here for graphs 
      }
    }
   return results1;
