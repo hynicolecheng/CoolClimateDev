@@ -2,10 +2,10 @@
   "name": "coolclimatedev",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "indexAPI.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start:dev": "nodemon ./src/index.mjs"
+    "start:dev": "nodemon ./src/indexAPI.mjs"
   },
   "keywords": [],
   "author": "",
