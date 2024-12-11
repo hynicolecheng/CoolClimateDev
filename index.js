@@ -5,23 +5,53 @@ const PORT = 8080;
 
 app.use(cors());
 
-import {getFips, getDV} from './db.js'
-import { Chart, registerables } from 'chart.js';
-Chart.register(...registerables);
+import {getFips, sectorGHG, populationHist, kwhElec, thermsNatGas, residentialThermsPerP, populationHistVCA} from './db.js'
 
 
-app.get("/fips/:geofips" , async(req,res) => {
-    const fips = req.params.geofips
-    console.log("Received request for geofips:", fips);
-    const fipsSend = await getFips(fips)
-    res.send(fipsSend)
+app.get("/fips/:geoName/population", async (req, res) => {
+    const name = req.params.geoName;
+    const pop = await populationHist(name);
+    res.send(pop);
+});
+
+app.get("/fips/:geo_name", async (req, res) => {
+    const name = req.params.geo_name;
+    const nameSectorStack = await sectorGHG(name);
+    res.send(nameSectorStack);
+});
+
+app.get("/fips/:geo_name/kwh", async (req, res) => {
+    const name = req.params.geo_name;
+    const kElec = await kwhElec(name);
+    res.send(kElec)
 })
 
-app.get("/fips/:geo_name/sector" , async(req,res) => {
-    const name = req.params.geo_name
-    const nameDV = await getDV(name)
-    res.send(nameDV)
+app.get("/fips/:geo_name/therms", async (req, res) => {
+    const name = req.params.geo_name;
+    const therms = await thermsNatGas(name);
+    res.send(therms)
 })
+
+app.get("/fips/:geo_name/thermsper", async (req, res) =>{
+    const name = req.params.geo_name;
+    const thermsPer = await residentialThermsPerP(name)
+    res.send(thermsPer)
+})
+
+app.get("/fips/:geofips", async (req, res) => {
+    const fips = req.params.geofips;
+    const fipsSend = await getFips(fips);
+    res.send(fipsSend);
+})
+
+app.get("/fips/:geoName/popvsCA", async(req, res) => {
+    const name = req.params.geoName;
+    const popVc = await populationHistVCA(name);
+    res.send(popVc);
+})
+
+
+
 
 app.listen(
     PORT,

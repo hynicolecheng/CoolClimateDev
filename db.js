@@ -1,39 +1,177 @@
-import mysql from 'mysql2'
+import mysql from 'mysql2';
 
+// Use environment variables for sensitive credentials
 const pool = mysql.createPool({
-    host: '127.0.0.1',
-    user: 'bennett_yarnell',
-    password: 'Wallydog9#237',
-    database: 'cc_db'
-}).promise()
+    host:  '127.0.0.1',
+    user:  'bennett_yarnell',
+    password:  'Wallydog9#237',
+    database:  'cc_db',
+}).promise();
 
-const years = Array.from({ length: 2045 - 1990 + 1 }, (_, i) => 1990 + i);
-const yearColumns = years.map(year => `\`${year}\` AS year_${year}`).join(', ');
+const years = Array.from({ length: 2030 - 2005 + 1}, (_, i) => 2005 + i);
+const yearColumns = years.map(year => `\`${year}\``).join(', ');
+
+const yearsf = Array.from({ length: 2045 - 1990 + 1}, (_, i) => 1990 + i);
+const yearColumnsFull = yearsf.map(year => `\`${year}\``).join(', ');
 
 
-
-
-//prepared statement
-export async function getFips(geofips){
+export async function getFips(geofips) {
     const result = await pool.query(`
         SELECT *
         FROM ghgs_bau
         WHERE geofips = ?
-        LIMIT 10 OFFSET 1
-    `, [geofips])
-    const rows = result[0]
-    return rows
+        LIMIT 10 OFFSET 0
+    `, [geofips]);
+    const rows = result[0];
+    return rows;
 }
 
-export async function getDV(geo_name){
-    const result = await pool.query(`
-        SELECT sector, ${yearColumns}
+
+export async function sectorGHG(geo_name) {
+    const yearsSQL = years.map(year => `SUM(\`${year}\`) AS year_${year}`).join(', ');
+
+    // Query for non-aggregated data
+    const baseQuery = `
+        SELECT 
+            sector,
+            description,
+            ${yearsSQL}
         FROM ghgs_bau
         WHERE geo_name = ?
-    `, [geo_name])
-    const rows = result[0]
-    return rows
+          AND description NOT LIKE '%Therms Natural Gas%' 
+          AND description NOT LIKE '%Kilowatt-Hours Electricity%'
+        GROUP BY sector, description
+    `;
+
+    // Query for Natural Gas aggregation
+    const naturalGasQuery = `
+        SELECT 
+            'Natural Gas' AS sector,
+            'Aggregated' AS description,
+            ${years.map(year => `
+                SUM(CASE 
+                    WHEN description LIKE '%Therms Natural Gas%' THEN \`${year}\` ELSE 0 
+                END) AS year_${year}`).join(', ')}
+        FROM ghgs_bau
+        WHERE geo_name = ?
+    `;
+
+    // Query for Electricity aggregation
+    const electricityQuery = `
+        SELECT 
+            'Electricity' AS sector,
+            'Aggregated' AS description,
+            ${years.map(year => `
+                SUM(CASE 
+                    WHEN description LIKE '%Kilowatt-Hours Electricity%' THEN \`${year}\` ELSE 0 
+                END) AS year_${year}`).join(', ')}
+        FROM ghgs_bau
+        WHERE geo_name = ?
+    `;
+
+    // Combine the queries using UNION ALL
+    const query = `
+        ${baseQuery}
+        UNION ALL
+        ${naturalGasQuery}
+        UNION ALL
+        ${electricityQuery}
+    `;
+
+    //console.log("Generated SQL Query:", query);
+
+    // Execute the query
+    const result = await pool.query(query, [geo_name, geo_name, geo_name]);
+    return result[0];
 }
+
+export async function populationHist(geoName) {
+    const result = await pool.query(`
+        SELECT ${yearColumnsFull}
+        FROM db_population_clean
+        WHERE geoName = ? 
+    `, [geoName]);
+    const rows = result[0];
+    return rows;
+}
+
+export async function kwhElec(geo_name){
+    const result = await pool.query(`
+        SELECT sector, ${yearColumns}
+        FROM inventory_data_bau
+        WHERE geo_name = ? AND description = 'Kilowatt-Hours Electricity'
+    `, [geo_name]);
+    const rows = result[0]
+    return rows;
+}
+
+export async function thermsNatGas(geo_name){
+    const result = await pool.query(`
+        SELECT sector, ${yearColumns}
+        FROM inventory_data_bau
+        WHERE geo_name = ? AND description = 'Therms Natural Gas'
+    `, [geo_name]);
+    const rows = result[0]
+    return rows;
+}
+
+export async function residentialThermsPerP(geo_name) {
+    const result = await pool.query(`
+        SELECT 
+            ${yearColumnsFull.split(',').map(year => `(inventory_data_bau.${year} / db_population_clean.${year}) AS ${year}`).join(', ')},
+            inventory_data_bau.geo_name
+        FROM inventory_data_bau
+        JOIN db_population_clean ON inventory_data_bau.geo_name = db_population_clean.geoName
+        WHERE inventory_data_bau.geo_name = ? AND inventory_data_bau.sector = 'residential' AND inventory_data_bau.description = 'Therms Natural Gas'
+    `, [geo_name]);
+    return result[0];
+}
+
+export async function populationHistVCA(geoName) {
+    try {
+        const caQ = 
+        `
+            SELECT ${yearColumnsFull}, geoName
+            FROM db_population_clean
+            WHERE geoName = 'California'
+        `
+        const inputQ = 
+        `
+            SELECT ${yearColumnsFull}, geoName
+            FROM db_population_clean
+            WHERE geoName = ?
+        `
+        const query = `${caQ} UNION ALL ${inputQ}`
+        const [rows] = await pool.query(query, [geoName]);
+        const caData = [];
+        const otherData = [];
+        rows.forEach(row => {
+            if(row.geoName === 'California'){
+                caData.push(row)
+            }
+            else if(row.geoName === geoName){
+                otherData.push(row)
+            }
+        })
+        for(const entry of caData){
+
+        }
+    } catch (error) {
+            console.error('Error fetching population data:', error);
+            throw error; 
+    }
+}
+
+
+
+
+
+
+
+
+
+
+  
 
 
 
