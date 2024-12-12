@@ -30,7 +30,7 @@ export async function getFips(geofips) {
 export async function sectorGHG(geo_name) {
     const yearsSQL = years.map(year => `SUM(\`${year}\`) AS year_${year}`).join(', ');
 
-    // Query for non-aggregated data
+    
     const baseQuery = `
         SELECT 
             sector,
@@ -43,7 +43,7 @@ export async function sectorGHG(geo_name) {
         GROUP BY sector, description
     `;
 
-    // Query for Natural Gas aggregation
+    
     const naturalGasQuery = `
         SELECT 
             'Natural Gas' AS sector,
@@ -69,7 +69,7 @@ export async function sectorGHG(geo_name) {
         WHERE geo_name = ?
     `;
 
-    // Combine the queries using UNION ALL
+    
     const query = `
         ${baseQuery}
         UNION ALL
@@ -145,6 +145,7 @@ export async function populationHistVCA(geoName) {
         const [rows] = await pool.query(query, [geoName]);
         const caData = [];
         const otherData = [];
+        
         rows.forEach(row => {
             if(row.geoName === 'California'){
                 caData.push(row)
@@ -153,14 +154,31 @@ export async function populationHistVCA(geoName) {
                 otherData.push(row)
             }
         })
-        for(const entry of caData){
-
+        return {
+            caData,
+            otherData
         }
+
     } catch (error) {
             console.error('Error fetching population data:', error);
             throw error; 
     }
 }
+
+export async function residentialKwhPer(geo_name){
+    const result = await pool.query(`
+        SELECT 
+            ${yearColumnsFull.split(',').map(year => `(inventory_data_bau.${year} / db_population_clean.${year}) AS ${year}`).join(', ')},
+            inventory_data_bau.geo_name
+        FROM inventory_data_bau
+        JOIN db_population_clean ON inventory_data_bau.geo_name = db_population_clean.geoName
+        WHERE inventory_data_bau.geo_name = ? AND inventory_data_bau.sector = 'residential' AND inventory_data_bau.description = 'Kilowatt-Hours Electricity'
+    `, [geo_name]);
+    const rows = result[0];
+    return rows;
+}
+
+
 
 
 

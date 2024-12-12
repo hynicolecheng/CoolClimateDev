@@ -1,4 +1,4 @@
-let chart1, chart2, chart3, chart4, chart5, chart6, chart7;
+let chart1, chart2, chart3, chart4, chart5, chart6, chart7, chart8;
 
 
 const fixedColors = [
@@ -10,7 +10,6 @@ const fixedColors = [
     'rgb(255, 159, 64)'   // Orange
 ];
 
-
 async function fetchDataSector(geo_name) {
     const response = await fetch(`http://localhost:8080/fips/${geo_name}`);
     if (!response.ok) {
@@ -18,7 +17,6 @@ async function fetchDataSector(geo_name) {
     }
     return await response.json();
 }
-
 
 async function fetchDataPop(geoName) {
     const response = await fetch(`http://localhost:8080/fips/${geoName}/population`);
@@ -62,13 +60,66 @@ async function fetchDataPopVCA(geoName){
     return data;
 }
 
+async function fetchDataElecPer(geo_name){
+    const response = await fetch(`http://localhost:8080/fips/${geo_name}/elecper`);
+    if(!response.ok){
+        console.error("Didn't work", response);
+        throw new Error(`Didn't do elec per person for ${geo_name}`);
+    }
+    const data = await response.json();
+    return data;
+}
+
+async function createElecPerChart(geo_name){
+    try{
+        const rawData = await fetchDataElecPer(geo_name);
+        const labels = Object.keys(rawData[0])
+            .filter(key => key.startsWith("20") && parseInt(key) <= 2022);
+        const data = labels.map(year => rawData[0][year])
+        const ctx = document.getElementById('myChart8').getContext('2d');
+
+        if(chart8) chart8.destroy();
+        chart8 = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Electricity Per Capita',
+                    data: data,
+                    backgroundColor: 'rgba(75, 192, 192)', 
+                    borderColor: 'rgba(75, 192, 192, 1)',       
+                    borderWidth: 1
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                },
+                scales: {
+                    y: { beginAtZero: true} 
+                },
+                },
+        });
+    } catch(error){
+        console.log('Error with chart 8', error.message);
+    }
+}
+
+
 async function createPopVsCAChart(geoName){
     try{
         const {caData, otherData} = await fetchDataPopVCA(geoName);
-        console.log('Fetched California Data:', caData);
-        console.log('Fetched Other Data:', otherData);
         const years  = Object.keys(caData[0]) 
-            .filter(key => key.startsWith("20") || key.startsWith("19"));caData.map(row => row.year);
+            .filter(key => key.startsWith("20") || key.startsWith("19"));
+            
         
         const caPop = years.map(year => caData[0][year]);
         const otherPop = years.map(year => otherData[0][year]);
@@ -155,20 +206,18 @@ async function createPopVsCAChart(geoName){
                     },
                 },
             },
-        })
+        });
     } catch (error){
         console.log("error chart7 :", error.message);
 
     }
-    
-
 }
 
 async function createThermsPerChart(geo_name){
     try{
         const rawData = await fetchDataThermsPer(geo_name);
         const labels = Object.keys(rawData[0]) 
-            .filter(key => key.startsWith("20") || key.startsWith("19"));
+            .filter(key => key.startsWith("20") && parseInt(key) <= 2022|| key.startsWith("19"));
 
             const data = labels.map(year => {
                 const value = rawData[0][year];
@@ -491,7 +540,6 @@ document.getElementById('fetchButton').addEventListener('click', async () => {
     }
 
     try {
-        
         await createChart1(geoName);
         await createChart1Line(geoName);
         await createPopChart(geoName);
@@ -499,7 +547,7 @@ document.getElementById('fetchButton').addEventListener('click', async () => {
         await createThermsChart(geoName);
         await createThermsPerChart(geoName);
         await createPopVsCAChart(geoName);
-
+        await createElecPerChart(geoName);
     } catch (error) {
         console.error("Error creating charts:", error.message);
     }
