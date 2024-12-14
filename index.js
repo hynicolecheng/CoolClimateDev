@@ -5,7 +5,9 @@ const PORT = 8080;
 
 app.use(cors());
 
-import {getFips, sectorGHG, populationHist, kwhElec, thermsNatGas, residentialThermsPerP, populationHistVCA, residentialKwhPer} from './db.js'
+import {getFips, sectorGHG, populationHist, kwhElec, thermsNatGas, 
+        residentialThermsPerP, populationHistVCA, residentialKwhPer, 
+        householdsVsPopulation} from './db.js'
 
 
 app.get("/fips/:geoName/population", async (req, res) => {
@@ -54,6 +56,12 @@ app.get("/fips/:geo_name/elecper", async(req,res) => {
     const name = req.params.geo_name;
     const elecper = await residentialKwhPer(name);
     res.send(elecper)
+})
+
+app.get("/fips/:geo_name/houseVsPop", async(req,res) => {
+    const name = req.params.geo_name;
+    const houseVP = await householdsVsPopulation(name);
+    res.send(houseVP);
 })
 
 

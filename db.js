@@ -178,6 +178,44 @@ export async function residentialKwhPer(geo_name){
     return rows;
 }
 
+export async function householdsVsPopulation(geo_name){
+    const query  = `
+        SELECT HOUSEHOLDS AS value, 'Households' AS type FROM db_census_ca
+        WHERE geo_name = ? OR geo_name = CONCAT(?, ', California')
+        UNION ALL
+        SELECT POPULATION AS value, 'Population' AS type FROM db_census_ca
+        WHERE geo_name = ? OR geo_name = CONCAT(?, ', California')
+        UNION ALL 
+        SELECT year AS value, 'Year' AS type FROM db_census_ca
+        WHERE geo_name = ? OR geo_name = CONCAT(?, ', California')
+    `
+    const [rows] = await pool.query(query, [geo_name, geo_name,
+                                            geo_name, geo_name,
+                                            geo_name, geo_name]);
+    const popData = [];
+    const houseData = [];
+    const yearData = [];
+
+    rows.forEach(row => {
+        if(row.type === 'Population'){
+            popData.push(row.value);
+        }
+        if(row.type === 'Households'){
+            houseData.push(row.value);
+        }
+        if(row.type === 'Year'){
+            yearData.push(row.value)
+        }
+    })
+    return {
+        popData,
+        houseData,
+        yearData,
+    };
+}
+
+
+
 
 
 

@@ -1,4 +1,4 @@
-let chart1, chart2, chart3, chart4, chart5, chart6, chart7, chart8;
+let chart1, chart2, chart3, chart4, chart5, chart6, chart7, chart8, chart9;
 
 
 const fixedColors = [
@@ -68,6 +68,69 @@ async function fetchDataElecPer(geo_name){
     }
     const data = await response.json();
     return data;
+}
+
+async function fetchDataHouseVPop(geo_name){
+    const response = await fetch(`http://localhost:8080/fips/${geo_name}/houseVsPop`);
+    if(!response.ok){
+        throw new Error(`House vs pop didn't work for ${geo_name}`);
+    }
+    const data = await response.json();
+    return data;
+}
+
+async function createHouseVsPopChart(geo_name){
+    try{
+        const {popData, houseData, yearData} = await fetchDataHouseVPop(geo_name);
+        const data = {
+            labels: yearData,
+            datasets: [
+                {
+                    label: `${geo_name} Population`,
+                    data: popData,
+                    backgroundColor: 'rgba(100,200,100)',
+                    borderColor: 'rgba(100,200,100)',
+                    borderWidth: 1 
+                },
+                {
+                    label: `${geo_name} Households`,
+                    data: houseData,
+                    backgroundColor: 'rgba(200,100,200)',
+                    borderColor: 'rgba(200,100,200)',
+                    borderWidth: 1
+
+                }
+            ]
+        };
+        const ctx = document.getElementById('myChart9').getContext('2d');
+        if(chart9) chart9.destroy();
+        chart8 = new Chart(ctx, {
+            type: 'line',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Year',
+                        },
+                    },
+                    y: {
+                        beginAtZero: true, // Optional: Starts the y-axis at zero
+                    },
+                },
+            },
+        });
+    } catch(error){
+        console.log("didn't work for chart 8", error.message)
+    }
 }
 
 async function createElecPerChart(geo_name){
@@ -200,7 +263,7 @@ async function createPopVsCAChart(geoName){
                         },
                         ticks: {
                             callback: function(value) {
-                                return `${value}%`; // Add % to Y-axis labels
+                                return `${value}%`; 
                             },
                         },
                     },
@@ -548,6 +611,7 @@ document.getElementById('fetchButton').addEventListener('click', async () => {
         await createThermsPerChart(geoName);
         await createPopVsCAChart(geoName);
         await createElecPerChart(geoName);
+        await createHouseVsPopChart(geoName);
     } catch (error) {
         console.error("Error creating charts:", error.message);
     }
