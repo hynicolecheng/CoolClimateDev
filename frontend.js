@@ -1,4 +1,4 @@
-let chart1, chart2, chart3, chart4, chart5, chart6, chart7, chart8, chart9;
+let chart1, chart2, chart3, chart4, chart5, chart6, chart7, chart8, chart9, mychart10;
 
 
 const fixedColors = [
@@ -79,6 +79,68 @@ async function fetchDataHouseVPop(geo_name){
     return data;
 }
 
+async function fetchDataDriveTime(geo_name){
+    const response = await fetch(`http://localhost:8080/fips/${geo_name}/travelTime`);
+    if(!response.ok){
+        throw new Error(`Travel time vs CA didn't work for ${geo_name}`);
+    }
+    const data = await response.json();
+    return data;
+}
+
+async function createDriveTimeChart(geo_name){
+    try{
+        const {locationAvg, caAvg, yearData,} = await fetchDataDriveTime(geo_name);
+        const data = {
+            labels: yearData,
+            datasets: [
+                {
+                    label: `${geo_name} Drive Time To Work`,
+                    data: locationAvg,
+                    backgroundColor: 'rgba(100,200,100)',
+                    borderColor: 'rgba(100,200,100)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'California Average',
+                    data: caAvg,
+                    backgroundColor: 'rgba(200,100,200)',
+                    borderColor: 'rgba(200,100,200)',
+                    borderWidth: 1
+                }
+            ]
+        }
+        const ctx = document.getElementById('myChart10').getContext('2d');
+        if(mychart10) mychart10.destroy();
+        mychart10 = new Chart(ctx, {
+            type: 'line',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Year',
+                        },
+                    },
+                    y: {
+                        beginAtZero: true, 
+                    },
+                },
+            },
+        });
+    } catch(error){
+        console.log("didn't work for chart 8", error.message)
+    }
+}
+
 async function createHouseVsPopChart(geo_name){
     try{
         const {popData, houseData, yearData} = await fetchDataHouseVPop(geo_name);
@@ -123,7 +185,7 @@ async function createHouseVsPopChart(geo_name){
                         },
                     },
                     y: {
-                        beginAtZero: true, // Optional: Starts the y-axis at zero
+                        beginAtZero: true, 
                     },
                 },
             },
@@ -612,6 +674,7 @@ document.getElementById('fetchButton').addEventListener('click', async () => {
         await createPopVsCAChart(geoName);
         await createElecPerChart(geoName);
         await createHouseVsPopChart(geoName);
+        await createDriveTimeChart(geoName);
     } catch (error) {
         console.error("Error creating charts:", error.message);
     }

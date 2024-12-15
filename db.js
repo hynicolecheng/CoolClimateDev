@@ -214,6 +214,39 @@ export async function householdsVsPopulation(geo_name){
     };
 }
 
+export async function travelTimeVsCA(geo_name){
+    const query1 = `
+        SELECT TRAVELTIME AS value, 'TravelTime' AS type FROM db_census_ca
+        WHERE geo_name = ? OR geo_name = CONCAT(?, ', California')
+        UNION ALL
+        SELECT TRAVELTIME AS value, 'TravelTimeCA' as type FROM db_census_ca
+        WHERE geo_name = 'California'
+        UNION ALL
+        SELECT year AS value, 'Year' AS type FROM db_census_ca
+        WHERE geo_name = ? OR geo_name = CONCAT(?, ', California')
+    `
+    const [rows] = await pool.query(query1, [geo_name, geo_name, geo_name, geo_name]);
+    const locationAvg = [];
+    const caAvg = [];
+    const yearData = [];
+    rows.forEach(row => {
+        if(row.type === 'TravelTime'){
+            locationAvg.push(row.value);
+        }
+        if(row.type === 'TravelTimeCA'){
+            caAvg.push(row.value);
+        }
+        if(row.type === 'Year'){
+            yearData.push(row.value);
+        }
+    })
+    return {
+        locationAvg,
+        caAvg,
+        yearData,
+    };
+}
+
 
 
 
