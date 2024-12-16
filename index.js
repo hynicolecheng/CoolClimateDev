@@ -7,7 +7,7 @@ app.use(cors());
 
 import {getFips, sectorGHG, populationHist, kwhElec, thermsNatGas, 
         residentialThermsPerP, populationHistVCA, residentialKwhPer, 
-        householdsVsPopulation, travelTimeVsCA, heatGasVsElec} from './db.js'
+        householdsVsPopulation, travelTimeVsCA, heatGasVsElec, gramsCO2} from './db.js'
 
 
 app.get("/fips/:geoName/population", async (req, res) => {
@@ -76,6 +76,11 @@ app.get("/fips/:geo_name/heatGVE", async(req,res) => {
     res.send(heatVE);
 })
 
+app.get("/fips/:location_name/gco2", async(req, res) => {
+    const name = req.params.location_name;
+    const gco2 = await gramsCO2(name);
+    res.send(gco2);
+})
 
 
 

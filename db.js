@@ -280,6 +280,41 @@ export async function heatGasVsElec(geo_name){
     };
 }
 
+export async function gramsCO2(location_name){
+    const query = `
+        SELECT go2_per_mile AS value, 'gldv' AS type FROM emfac 
+        WHERE location_name = ? AND vehicle_type = 'ldv'
+        UNION ALL
+        SELECT go2_per_mile AS value, 'ghdv' AS type FROM emfac 
+        WHERE location_name = ? AND vehicle_type = 'hdv'
+        UNION ALL 
+        SELECT year AS value, 'Year' AS type FROM emfac 
+        WHERE location_name = ? AND vehicle_type = 'ldv'
+    `
+    const [rows] = await pool.query(query, [location_name, location_name, location_name]);
+    const ldv = [];
+    const hdv = [];
+    const yearData = [];
+
+    rows.forEach(row => {
+        if(row.type === 'gldv'){
+            ldv.push(row.value);
+        }
+        if(row.type === 'ghdv'){
+            hdv.push(row.value);
+        }
+        if(row.type === 'Year'){
+            yearData.push(row.value)
+        }
+    })
+
+    return {
+        ldv, 
+        hdv, 
+        yearData,
+    };
+
+}
 
 
 

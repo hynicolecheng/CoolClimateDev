@@ -1,4 +1,4 @@
-let chart1, chart2, chart3, chart4, chart5, chart6, chart7, chart8, chart9, chart10, chart11;
+let chart1, chart2, chart3, chart4, chart5, chart6, chart7, chart8, chart9, chart10, chart11, chart12;
 
 
 const fixedColors = [
@@ -94,6 +94,67 @@ async function fetchGasVE(geo_name){
     }
     const data = await response.json();
     return data;
+}
+async function fetchGCO2(location_name){
+    const response = await fetch(`http://localhost:8080/fips/${location_name}/gco2`);
+    if(!response.ok){
+        throw new Error(`GC02 didn't work for ${location_name}`);
+    }
+    const data = await response.json();
+    return data;
+}
+async function createGCO2Chart(location_name){
+    try{
+        const {ldv, hdv, yearData} = await fetchGCO2(location_name);
+        const data = {
+            labels: yearData,
+            datasets: [
+                {
+                    label: `${location_name} LDV`,
+                    data: ldv,
+                    backgroundColor: 'rgba(100,200,100)',
+                    borderColor: 'rgba(100,200,100)',
+                    borderWidth: 1
+                },
+                {
+                    label: `${location_name} HDV`,
+                    data: hdv,
+                    backgroundColor: 'rgba(200,100,200)',
+                    borderColor: 'rgba(200,100,200)',
+                    borderWidth: 1
+                }
+
+            ]
+        }
+        const ctx = document.getElementById('myChart12').getContext('2d');
+        if(chart12) chart12.destroy();
+        chart12 = new Chart(ctx, {
+            type: 'line',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Year',
+                        },
+                    },
+                    y: {
+                        beginAtZero: true, 
+                    },
+                },
+            },
+        });
+    } catch(error){
+        console.log("didn't work for chart 12", error.message)
+    }
 }
 
 async function createChartGasVE(geo_name){
@@ -759,6 +820,7 @@ document.getElementById('fetchButton').addEventListener('click', async () => {
         await createHouseVsPopChart(geoName);
         await createDriveTimeChart(geoName);
         await createChartGasVE(geoName);
+        await createGCO2Chart(geoName);
     } catch (error) {
         console.error("Error creating charts:", error.message);
     }
