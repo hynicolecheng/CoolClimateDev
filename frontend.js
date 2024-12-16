@@ -1,4 +1,4 @@
-let chart1, chart2, chart3, chart4, chart5, chart6, chart7, chart8, chart9, mychart10;
+let chart1, chart2, chart3, chart4, chart5, chart6, chart7, chart8, chart9, chart10, chart11;
 
 
 const fixedColors = [
@@ -87,6 +87,89 @@ async function fetchDataDriveTime(geo_name){
     const data = await response.json();
     return data;
 }
+async function fetchGasVE(geo_name){
+    const response = await fetch(`http://localhost:8080/fips/${geo_name}/heatGVE`);
+    if(!response.ok){
+        throw new Error(`Gas vs Elec didn't work for ${geo_name}`);
+    }
+    const data = await response.json();
+    return data;
+}
+
+async function createChartGasVE(geo_name){
+    try{
+        const {heatGas, heatE, yearData} = await fetchGasVE(geo_name);
+        
+        const heatGasP = heatGas.map((value, index) => {
+            return (value * 100);
+        });
+        const heatEP = heatE.map((value,index) => {
+            return(value * 100);
+        });
+        const data = {
+            labels: yearData,
+            datasets: [
+                {
+                    label: `${geo_name} Gas`,
+                    data: heatGasP,
+                    backgroundColor: 'rgba(100,200,100)',
+                    borderColor: 'rgba(100,200,100)',
+                    borderWidth: 1
+                },
+                {
+                    label: `${geo_name} Electricity`,
+                    data: heatEP,
+                    backgroundColor: 'rgba(200,100,200)',
+                    borderColor: 'rgba(200,100,200)',
+                    borderWidth: 1
+                }
+            ]
+        }
+        const ctx = document.getElementById('myChart11').getContext('2d');
+        if (chart11) chart11.destroy();
+        chart11 = new Chart(ctx, {
+            type: 'line',
+            data: data,
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    }, 
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.raw.toFixed(2)}%`; 
+                            },
+                        },
+                    },
+
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Year',
+                        },
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Percentage'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return `${value}%`; 
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    } catch(error){
+        console.log("didn't work for chart 11", error.message)
+    }
+}
 
 async function createDriveTimeChart(geo_name){
     try{
@@ -111,8 +194,8 @@ async function createDriveTimeChart(geo_name){
             ]
         }
         const ctx = document.getElementById('myChart10').getContext('2d');
-        if(mychart10) mychart10.destroy();
-        mychart10 = new Chart(ctx, {
+        if(chart10) chart10.destroy();
+        chart10 = new Chart(ctx, {
             type: 'line',
             data: data,
             options: {
@@ -675,6 +758,7 @@ document.getElementById('fetchButton').addEventListener('click', async () => {
         await createElecPerChart(geoName);
         await createHouseVsPopChart(geoName);
         await createDriveTimeChart(geoName);
+        await createChartGasVE(geoName);
     } catch (error) {
         console.error("Error creating charts:", error.message);
     }

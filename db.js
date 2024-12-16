@@ -1,6 +1,5 @@
 import mysql from 'mysql2';
 
-// Use environment variables for sensitive credentials
 const pool = mysql.createPool({
     host:  '127.0.0.1',
     user:  'bennett_yarnell',
@@ -246,6 +245,41 @@ export async function travelTimeVsCA(geo_name){
         yearData,
     };
 }
+
+export async function heatGasVsElec(geo_name){
+    const query1 = `
+    SELECT HEATGAS AS value, 'Gas' AS type FROM db_census_ca
+    WHERE geo_name = ? OR geo_name = CONCAT(?, ', California')
+    UNION ALL
+    SELECT HEATKWH AS value, 'Electricity' AS type FROM db_census_ca 
+    WHERE geo_name = ? OR geo_name = CONCAT(?, ', California')
+    UNION ALL
+    SELECT year AS value, 'Year' AS type FROM db_census_ca
+    WHERE geo_name = ? OR geo_name = CONCAT(?, ', California')
+    `
+    const [rows] = await pool.query(query1, [geo_name, geo_name, geo_name, geo_name, geo_name, geo_name]);
+    const heatGas = [];
+    const heatE = [];
+    const yearData = [];
+    rows.forEach(row =>{
+        if(row.type === 'Gas'){
+            heatGas.push(row.value);
+        }
+        if(row.type === 'Electricity'){
+            heatE.push(row.value);
+        }
+        if(row.type === 'Year'){
+            yearData.push(row.value);
+        }
+    })
+
+    return {
+        heatGas,
+        heatE,
+        yearData,
+    };
+}
+
 
 
 
